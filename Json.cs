@@ -135,7 +135,6 @@ public static class Json
 
 		private Char Read(int pos = 0)
 		{
-			Console.Write(this.Source[this.Cursor + pos]);
 			return this.Source[this.Cursor + pos];
 		}
 
