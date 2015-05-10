@@ -245,16 +245,19 @@ namespace Json
 							break;
 
 						default:
+							// Boolean (true)
 							if (this.Source.Substring(this.Cursor - 1, TRUE.Length) == TRUE)
 							{
 								this.Next(TRUE.Length - 1);
 								return true;
 							}
+							// Boolean (false)
 							else if (this.Source.Substring(this.Cursor - 1, FALSE.Length) == FALSE)
 							{
 								this.Next(FALSE.Length - 1);
 								return false;
 							}
+							// Null
 							else if (this.Source.Substring(this.Cursor - 1, NULL.Length) == NULL)
 							{
 								this.Next(NULL.Length - 1);
