@@ -51,6 +51,7 @@ namespace Json
 				Comma,
 				Number,
 				Hyphen,
+				Period,
 				Escape,
 				PrettyToken,
 				Unknown
@@ -83,6 +84,8 @@ namespace Json
 						return TokenType.Comma;
 					case '-':
 						return TokenType.Hyphen;
+					case '.':
+						return TokenType.Period;
 					case '0':
 					case '1':
 					case '2':
@@ -297,7 +300,7 @@ namespace Json
 				throw new FormatException("文字列の途中でソースが終了しました。");
 			}
 
-			private long AnalyzeNumber()
+			private object AnalyzeNumber()
 			{
 				this.Back();
 				var num = String.Empty;
@@ -309,11 +312,15 @@ namespace Json
 					{
 						case TokenType.Number:
 						case TokenType.Hyphen:
+						case TokenType.Period:
 							num += c;
 							this.Next();
 							break;
 						default:
-							return long.Parse(num);
+							if (num.IndexOf('.') >= 0)
+								return double.Parse(num);
+							else
+								return long.Parse(num);
 					}
 				}
 
