@@ -287,10 +287,14 @@ namespace Json
 					switch (this.GetTokenType(c))
 					{
 						case TokenType.Escape:
+							if (this.Read() == 'u')
+							{
+								str += "\\u";
+							}
 							this.Next();
 							break;
 						case TokenType.DoubleQuote:
-							return str;
+							return System.Text.RegularExpressions.Regex.Unescape(str);
 						default:
 							str += c;
 							break;
