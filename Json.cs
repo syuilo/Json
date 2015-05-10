@@ -42,6 +42,12 @@ namespace Json
 				set;
 			}
 
+
+			private Char Read(int pos = 0)
+			{
+				return this.Source[this.Cursor + pos];
+			}
+
 			private const string TRUE = "true";
 
 			private const string FALSE = "false";
