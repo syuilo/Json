@@ -13,16 +13,8 @@ using System.Collections.Generic;
 
 namespace Json
 {
-	/// <summary>
-	/// Json is a C# JSON parser.
-	/// </summary>
 	public static class Json
 	{
-		/// <summary>
-		/// JSON文字列をオブジェクトに復元します。
-		/// </summary>
-		/// <param name="source"></param>
-		/// <returns></returns>
 		public static Dictionary<string, object> Deserialize(string source)
 		{
 			return new Analyzer(source).Parse();
@@ -42,12 +34,6 @@ namespace Json
 				set;
 			}
 
-
-			private Char Read(int pos = 0)
-			{
-				return this.Source[this.Cursor + pos];
-			}
-
 			private const string TRUE = "true";
 
 			private const string FALSE = "false";
@@ -56,58 +42,17 @@ namespace Json
 
 			private enum TokenType
 			{
-				/// <summary>
-				/// {
-				/// </summary>
 				OpenCurlyBracket,
-
-				/// <summary>
-				/// }
-				/// </summary>
 				CloseCurlyBracket,
-
-				/// <summary>
-				/// [
-				/// </summary>
 				OpenSquareBracket,
-
-				/// <summary>
-				/// ]
-				/// </summary>
 				CloseSquareBracket,
-
-				/// <summary>
-				/// "
-				/// </summary>
 				DoubleQuote,
-
-				/// <summary>
-				/// :
-				/// </summary>
 				Colon,
-
-				/// <summary>
-				/// ,
-				/// </summary>
 				Comma,
-
-				/// <summary>
-				/// 0-9
-				/// </summary>
 				Number,
-
-				/// <summary>
-				/// -
-				/// </summary>
 				Hyphen,
-
-				/// <summary>
-				/// \
-				/// </summary>
 				Escape,
-
 				PrettyToken,
-
 				Unknown
 			}
 
@@ -156,7 +101,6 @@ namespace Json
 
 			private Char Read(int pos = 0)
 			{
-				Console.Write(this.Source[this.Cursor + pos]);
 				return this.Source[this.Cursor + pos];
 			}
 
@@ -207,6 +151,53 @@ namespace Json
 
 			private Dictionary<string, object> AnalyzeObject()
 			{
+				var getValue = new Func<object>(() =>
+				{
+					for (; this.Cursor < this.Source.Length; )
+					{
+						switch (this.GetTokenType(this.ReadAndNext()))
+						{
+							// Object
+							case TokenType.OpenCurlyBracket:
+								return this.AnalyzeObject();
+							// Array
+							case TokenType.OpenSquareBracket:
+								return this.AnalyzeArray();
+							// String
+							case TokenType.DoubleQuote:
+								return this.AnalyzeString();
+							// Number
+							case TokenType.Number:
+							case TokenType.Hyphen:
+								return this.AnalyzeNumber();
+
+							case TokenType.PrettyToken:
+							case TokenType.Colon:
+								break;
+							default:
+								if (this.Source.Substring(this.Cursor - 1, TRUE.Length) == TRUE)
+								{
+									this.Next(TRUE.Length - 1);
+									return true;
+								}
+								else if (this.Source.Substring(this.Cursor - 1, FALSE.Length) == FALSE)
+								{
+									this.Next(FALSE.Length - 1);
+									return false;
+								}
+								else if (this.Source.Substring(this.Cursor - 1, NULL.Length) == NULL)
+								{
+									this.Next(NULL.Length - 1);
+									return null;
+								}
+								else
+									throw new FormatException("Invalid format.");
+						}
+					}
+
+					throw new FormatException("キーに対応する値に出会う前にソースが終了しました。");
+				});
+
 				var obj = new Dictionary<string, object>();
 
 				for (; this.Cursor < this.Source.Length; )
@@ -219,7 +210,9 @@ namespace Json
 						{
 							case TokenType.DoubleQuote:
 								key = this.AnalyzeKey();
-								goto GetValue;
+								var value = getValue();
+								obj.Add(key, value);
+								break;
 							case TokenType.CloseCurlyBracket:
 								return obj;
 							case TokenType.PrettyToken:
@@ -229,57 +222,6 @@ namespace Json
 								throw new FormatException("Invalid format.");
 						}
 					}
-
-				GetValue:
-
-					var value = new Func<object>(() =>
-					{
-						for (; this.Cursor < this.Source.Length; )
-						{
-							switch (this.GetTokenType(this.ReadAndNext()))
-							{
-								// Object
-								case TokenType.OpenCurlyBracket:
-									return this.AnalyzeObject();
-								// Array
-								case TokenType.OpenSquareBracket:
-									return this.AnalyzeArray();
-								// String
-								case TokenType.DoubleQuote:
-									return this.AnalyzeString();
-								// Number
-								case TokenType.Number:
-								case TokenType.Hyphen:
-									return this.AnalyzeNumber();
-
-								case TokenType.PrettyToken:
-								case TokenType.Colon:
-									break;
-								default:
-									if (this.Source.Substring(this.Cursor - 1, TRUE.Length) == TRUE)
-									{
-										this.Next(TRUE.Length - 1);
-										return true;
-									}
-									else if (this.Source.Substring(this.Cursor - 1, FALSE.Length) == FALSE)
-									{
-										this.Next(FALSE.Length - 1);
-										return false;
-									}
-									else if (this.Source.Substring(this.Cursor - 1, NULL.Length) == NULL)
-									{
-										this.Next(NULL.Length - 1);
-										return null;
-									}
-									else
-										throw new FormatException("Invalid format.");
-							}
-						}
-
-						throw new FormatException("キーに対応する値に出会う前にソースが終了しました。");
-					})();
-
-					obj.Add(key, value);
 				}
 
 				throw new FormatException("オブジェクトが終了していません。");
